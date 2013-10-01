@@ -32,7 +32,8 @@ my $SeasonNumber;
 my $EpisodeNumber;
 my $file = $ARGV[0];
 my ($filename, $directories) = fileparse("$file");
-my ($show,$Season_Episode,$show_name) = split('\ -\ ', $filename);
+my ($show,$Season_Episode,$episode_name) = split('\ -\ ', $filename);
+$episode_name =~ s/.m4v//g;
 if ($Season_Episode =~ m/S(\d+)E(\d+)/) {
 	($SeasonNumber,$EpisodeNumber) = split('E', $Season_Episode);
 	$SeasonNumber =~ s/S//g;
@@ -63,6 +64,8 @@ my $series_list = $tvdb->search("$show");
 my $series = @{$series_list}[0];
 $series->fetch();
 
+#print Dumper($series);
+
 my $SeriesID = $series->seriesid;
 my $IMDB_ID = $series->IMDB_ID;
 my $Rating = $series->ContentRating;
@@ -72,13 +75,14 @@ for my $genres (@{ $series->Genre }) {
 	$genre .= $genres . ",";
 }
 $genre =~ s/,$//g;
-for my $people (@{ $series->Actors}) {
-	$Actors .= $people . ",";
+
+if (@{$series->Actors}) {
+	for my $people (@{ $series->Actors}) {
+		$Actors .= $people . ",";
+	}
+	$Actors =~ s/,$//g;
 }
 
-#print Dumper($series->episodes);
-
-$Actors =~ s/,$//g;
 for my $episode (@{ $series->episodes }) {
 	if ($episode->SeasonNumber eq $SeasonNumber && $episode->EpisodeNumber eq $EpisodeNumber) {
 		$EpisodeName = $episode->EpisodeName;
@@ -92,6 +96,34 @@ for my $episode (@{ $series->episodes }) {
 		$Writer =~ s/^\||\|$//g;
 		$Writer =~ s/\|/,/g;
 	}
+}
+
+#print Dumper($series->episodes);
+if (!$EpisodeName) {
+	foreach my $episode (@{ $series->episodes }) {
+		my $EN = $episode->{EpisodeName};
+		$EN =~ s/[#\-\%\$*+():].\'\"//g;
+		if (lc($EN) eq lc($episode_name)) {
+			$EpisodeName = $episode->EpisodeName;
+			$AirDate = $episode->FirstAired;
+			$Description = $episode->Overview;
+			$ProductionCode = $episode->ProductionCode;
+			if ($episode->Director) {
+				$Director = $episode->Director;
+				$Director =~ s/^\||\|$//g;
+				$Director =~ s/\|/,/g;
+			}
+			if ($episode->Writer) {
+				$Writer = $episode->Writer;
+				$Writer =~ s/^\||\|$//g;
+				$Writer =~ s/\|/,/g;
+			}
+			$SeasonNumber = $episode->SeasonNumber;
+			$EpisodeNumber = $episode->EpisodeNumber;
+		}
+		
+	}
+	
 }
 
 for my $banner (@{ $series->banners }){
@@ -109,7 +141,8 @@ foreach my $art (@banners) {
 	}
 }
 
-if (!$artwork) {
+print Dumper(@banners);
+if (!$artwork && @banners) {
 	print "Please select the image(s) you would like to preview. (Comma separated list ex. 1,2,3)\n\n";
 	foreach my $art (@banners) {
 		print "$index) " . $url . "/" . $art->{banner} . "\n";
@@ -136,9 +169,11 @@ if (!$artwork) {
 	$artwork = $url . "/" . $banners[$input]->{banner};
 }
 
-my $ff = File::Fetch->new(uri => "$artwork");
-my $where = $ff->fetch() or die $ff->error;
-$image = $ff->output_file;
+if ($artwork) {
+	my $ff = File::Fetch->new(uri => "$artwork");
+	my $where = $ff->fetch() or die $ff->error;
+	$image = $ff->output_file;
+}
 
 if ($verbose) {
 	print "\n************************************\n";
@@ -169,8 +204,12 @@ if ($verbose) {
 	print "************************************\n";
 }
 
+$filename =~ s/\'//g;
+$SeriesName =~ s/\'//g;
+$Description =~ s/\'//g;
+print "Filename: $filename\n";
 push(@command, "$mp4tagger");
-push(@command, "-i \'$file\'");
+push(@command, "-i \"$file\"");
 push(@command, "--media_kind \"$kind\"");
 if ($artwork) {
 	push(@command, "--artwork \"$image\"");
@@ -192,9 +231,15 @@ if ($Rating) {
 	push(@command, "--rating \"$Rating\"");
 }
 push(@command, "--content_rating \"Clean\"");
-push(@command, "--cast \"$Actors\"");
-push(@command, "--director \"$Director\"");
-push(@command, "--screenwriters \"$Writer\"");
+if ($Actors) {
+	push(@command, "--cast \"$Actors\"");
+}
+if ($Director) {
+	push(@command, "--director \"$Director\"");
+}
+if ($Writer) {
+	push(@command, "--screenwriters \"$Writer\"");
+}
 push(@command, "--description \"$Description\"");
 push(@command, "--long_description \"$Description\"");
 
@@ -202,5 +247,8 @@ system("@command") == 0
 	or die "system @command failed: $?";
 
 # Cleanup after ourselves, removing downloaded artwork.	
-system("rm -f $image") == 0
-	or die "system rm failed: $?";
+if ($image) {
+	system("rm -f $image") == 0
+		or die "system rm failed: $?";
+}
+
