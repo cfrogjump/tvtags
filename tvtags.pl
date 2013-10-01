@@ -64,8 +64,7 @@ my $series_list = $tvdb->search("$show");
 my $series = @{$series_list}[0];
 $series->fetch();
 
-#print Dumper($series);
-
+# Populate the series information
 my $SeriesID = $series->seriesid;
 my $IMDB_ID = $series->IMDB_ID;
 my $Rating = $series->ContentRating;
@@ -83,6 +82,7 @@ if (@{$series->Actors}) {
 	$Actors =~ s/,$//g;
 }
 
+# Popluate the episode information
 for my $episode (@{ $series->episodes }) {
 	if ($episode->SeasonNumber eq $SeasonNumber && $episode->EpisodeNumber eq $EpisodeNumber) {
 		$EpisodeName = $episode->EpisodeName;
@@ -98,7 +98,8 @@ for my $episode (@{ $series->episodes }) {
 	}
 }
 
-#print Dumper($series->episodes);
+# Try and determine what episode it is if your season and episode number in the filename
+# can't be found on TVDB (i.e. Fast N' Loud season 4)
 if (!$EpisodeName) {
 	foreach my $episode (@{ $series->episodes }) {
 		my $EN = $episode->{EpisodeName};
@@ -126,6 +127,7 @@ if (!$EpisodeName) {
 	
 }
 
+# Determine which season artwork to use. 
 for my $banner (@{ $series->banners }){
 	if ($banner->BannerType eq "season" && $banner->Season eq $SeasonNumber) {
 		push @banners, {banner => $banner->BannerPath, id => $banner->id, ratingcount => $banner->RatingCount, rating=> $banner->Rating}
@@ -141,7 +143,7 @@ foreach my $art (@banners) {
 	}
 }
 
-print Dumper(@banners);
+# If artwork can't be automatically determined then prompt for input.
 if (!$artwork && @banners) {
 	print "Please select the image(s) you would like to preview. (Comma separated list ex. 1,2,3)\n\n";
 	foreach my $art (@banners) {
@@ -204,6 +206,7 @@ if ($verbose) {
 	print "************************************\n";
 }
 
+# Tag the file with the information.
 $filename =~ s/\'//g;
 $SeriesName =~ s/\'//g;
 $Description =~ s/\'//g;
