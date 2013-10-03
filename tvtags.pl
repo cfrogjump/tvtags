@@ -88,13 +88,18 @@ for my $episode (@{ $series->episodes }) {
 		$EpisodeName = $episode->EpisodeName;
 		$AirDate = $episode->FirstAired;
 		$Description = $episode->Overview;
+		$Description =~ s/\"/\\\"/g;
 		$ProductionCode = $episode->ProductionCode;
 		$Director = $episode->Director;
-		$Director =~ s/^\||\|$//g;
-		$Director =~ s/\|/,/g;
+		if ($Director) {
+			$Director =~ s/^\||\|$//g;
+			$Director =~ s/\|/,/g;
+		}
 		$Writer = $episode->Writer;
-		$Writer =~ s/^\||\|$//g;
-		$Writer =~ s/\|/,/g;
+		if ($Writer) {
+			$Writer =~ s/^\||\|$//g;
+			$Writer =~ s/\|/,/g;
+		}
 	}
 }
 
@@ -198,19 +203,25 @@ if ($verbose) {
 	if ($ProductionCode) {
 		print "EPISODE ID:\t$ProductionCode\n";
 	}
-	print "ACTORS:\t\t$Actors\n";
+	if ($Actors) {
+		print "ACTORS:\t\t$Actors\n";
+	}
 	#print "GUEST ACTORS:\t$GuestStars\n";
-	print "DIRECTOR:\t$Director\n";
-	print "SCREENWRITER:\t$Writer\n";
+	if ($Director) {
+		print "DIRECTOR:\t$Director\n";
+	}
+	if ($Writer) {
+		print "SCREENWRITER:\t$Writer\n";
+	}
 	print "\n";
 	print "************************************\n";
 }
 
 # Tag the file with the information.
-$filename =~ s/\'//g;
-$SeriesName =~ s/\'//g;
-$Description =~ s/\'//g;
-print "Filename: $filename\n";
+#$filename =~ s/\'//g;
+#$SeriesName =~ s/\'/\\'/g;
+#$Description =~ s/\'//g;
+#print "Filename: $filename\n";
 push(@command, "$mp4tagger");
 push(@command, "-i \"$file\"");
 push(@command, "--media_kind \"$kind\"");
@@ -224,10 +235,11 @@ if ($ProductionCode) {
 	push(@command, "--tv_episode_id \"$ProductionCode\"");
 }
 push(@command, "--tv_episode_n \"$EpisodeNumber\"");
-push(@command, "--tv_show \'$SeriesName\'");
+#push(@command, "--tv_episode_name \"$EpisodeName\"");
+push(@command, "--tv_show \"$SeriesName\"");
 push(@command, "--tv_season \"$SeasonNumber\"");
 push(@command, "--tv_network \"$TVNetwork\"");
-push(@command, "--name \'$SeriesName\'");
+push(@command, "--name \"$EpisodeName\"");
 push(@command, "--genre \"$genre\"");
 push(@command, "--release_date \"$AirDate\"");
 if ($Rating) {
