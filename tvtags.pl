@@ -7,7 +7,7 @@ use WebService::TVDB;
 use File::Basename;
 use File::Path;
 use File::Fetch;
-use Mac::AppleScript qw(RunAppleScript);
+#use Mac::AppleScript qw(RunAppleScript);
 
 if ($#ARGV != 0) {
 	print "Usage: tvtags.pl <TV Show file>\n";
@@ -145,6 +145,7 @@ my $index = 0;
 foreach my $art (@banners) {
 	if ($art->{rating} && $art->{rating} ge $highestRating) {
 		$highestRating = $art->{rating};
+		
 		$artwork = $url . "/" . $art->{banner};
 	}
 }
@@ -168,8 +169,7 @@ if (!$artwork && @banners) {
 	if ($input) {
 		foreach my $x (@inputArray) {
 			$imageurl = "$url/$banners[$x]->{banner}";
-			RunAppleScript(qq(tell application "Safari"\nactivate\nopen location "$imageurl"\nend tell))
-				or die "Didn't open Safari.\n";
+			`open $imageurl`;
 		}	
 	}
 	print "Which image would you like to use? ";
