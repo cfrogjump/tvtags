@@ -7,7 +7,6 @@ use WebService::TVDB;
 use File::Basename;
 use File::Path;
 use File::Fetch;
-#use Mac::AppleScript qw(RunAppleScript);
 
 if ($#ARGV != 0) {
 	print "Usage: tvtags.pl <TV Show file>\n";
@@ -21,9 +20,8 @@ if ($#ARGV != 0) {
 my $HD = "yes";
 my $api_key = "E5DC4EEFA8A7AA8D";
 my $mp4tagger = "MP4Tagger";
-my $debug = 0;
-my $verbose = 1;
-my $logfile = "/Users/cade/tvtags.log";
+my $verbose = "yes";
+my $cleanup = "no"; # Define as yes to remove the cover artwork after each tag. 
 ######################################################################
 # DO NOT EDIT ANYTHING BLEOW THIS LINE.
 ######################################################################
@@ -142,16 +140,22 @@ for my $banner (@{ $series->banners }){
 my $url = 'http://www.thetvdb.com/banners';
 my $highestRating = 0;
 my $index = 0;
+
 foreach my $art (@banners) {
-	if ($art->{rating} && $art->{rating} ge $highestRating) {
-		$highestRating = $art->{rating};
-		
-		$artwork = $url . "/" . $art->{banner};
+	my $localart = "$SeriesName.jpg";
+	if (!-e $localart) {
+		if ($art->{rating} && $art->{rating} ge $highestRating) {
+			$highestRating = $art->{rating};
+			$artwork = $url . "/" . $art->{banner};
+		}
+	} else {
+		$image = $localart;
 	}
+	
 }
 
 # If artwork can't be automatically determined then prompt for input.
-if (!$artwork && @banners) {
+if (!$artwork && !$image && @banners) {
 	print "Please select the image(s) you would like to preview. (Comma separated list ex. 1,2,3)\n\n";
 	foreach my $art (@banners) {
 		print "$index) " . $url . "/" . $art->{banner} . "\n";
@@ -180,10 +184,12 @@ if (!$artwork && @banners) {
 if ($artwork) {
 	my $ff = File::Fetch->new(uri => "$artwork");
 	my $where = $ff->fetch() or die $ff->error;
-	$image = $ff->output_file;
+	my $tmpimage = $ff->output_file;
+	rename $tmpimage,"$SeriesName.jpg";
+	$image = "$SeriesName.jpg";
 }
 
-if ($verbose) {
+if ($verbose eq "yes") {
 	print "\n************************************\n";
 	print "\n";
 	print "FILENAME:\t$filename\n";
@@ -191,7 +197,11 @@ if ($verbose) {
 	print "SERIES ID:\t$SeriesID\n";
 	print "TYPE:\t\t$kind\n";
 	print "HD:\t\t$HD\n";
-	print "IMAGE:\t\t$artwork\n";
+	if ($artwork) {
+		print "IMAGE URL:\t$artwork\n";
+	} elsif	($image) {
+		print "IMAGE URL:\t$image\n";
+	}
 	print "SERIES NAME:\t$SeriesName\n";
 	print "EPISODE NAME:\t$EpisodeName\n";
 	print "AIR DATE:\t$AirDate\n";
@@ -219,10 +229,6 @@ if ($verbose) {
 }
 
 # Tag the file with the information.
-#$filename =~ s/\'//g;
-#$SeriesName =~ s/\'/\\'/g;
-#$Description =~ s/\'//g;
-#print "Filename: $filename\n";
 $file =~ s/\ /\\\ /g;
 $file =~ s/\'/\\\'/g;
 $file =~ s/\(/\\\(/g;
@@ -230,11 +236,11 @@ $file =~ s/\)/\\\)/g;
 $file =~ s/\,/\\\,/g;
 $file =~ s/\:/\\\:/g;
 $file =~ s/\&/\\\&/g;
-#print "$file\n";
+
 push(@command, "$mp4tagger");
 push(@command, "-i $file");
 push(@command, "--media_kind \"$kind\"");
-if ($artwork) {
+if ($image) {
 	push(@command, "--artwork \"$image\"");
 } else {
 	print "\n\n\tWARNING: THIS FILE WILL NOT CONTAIN ANY COVER ART, NO IMAGE FILE WAS FOUND!\n\n";
@@ -244,7 +250,6 @@ if ($ProductionCode) {
 	push(@command, "--tv_episode_id \"$ProductionCode\"");
 }
 push(@command, "--tv_episode_n \"$EpisodeNumber\"");
-#push(@command, "--tv_episode_name \"$EpisodeName\"");
 push(@command, "--tv_show \"$SeriesName\"");
 push(@command, "--tv_season \"$SeasonNumber\"");
 push(@command, "--tv_network \"$TVNetwork\"");
@@ -271,7 +276,7 @@ system("@command") == 0
 	or die "system @command failed: $?";
 
 # Cleanup after ourselves, removing downloaded artwork.	
-if ($image) {
+if ($image && $cleanup eq "yes") {
 	system("rm -f $image") == 0
 		or die "system rm failed: $?";
 }
