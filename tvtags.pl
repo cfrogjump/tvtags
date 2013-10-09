@@ -64,6 +64,7 @@ my $series_list = $tvdb->search("$show");
 my $series = @{$series_list}[0];
 $series->fetch();
 
+#print Dumper($series);
 # Populate the series information
 my $SeriesID = $series->seriesid;
 my $IMDB_ID = $series->IMDB_ID;
@@ -222,8 +223,16 @@ if ($verbose) {
 #$SeriesName =~ s/\'/\\'/g;
 #$Description =~ s/\'//g;
 #print "Filename: $filename\n";
+$file =~ s/\ /\\\ /g;
+$file =~ s/\'/\\\'/g;
+$file =~ s/\(/\\\(/g;
+$file =~ s/\)/\\\)/g;
+$file =~ s/\,/\\\,/g;
+$file =~ s/\:/\\\:/g;
+$file =~ s/\&/\\\&/g;
+#print "$file\n";
 push(@command, "$mp4tagger");
-push(@command, "-i \"$file\"");
+push(@command, "-i $file");
 push(@command, "--media_kind \"$kind\"");
 if ($artwork) {
 	push(@command, "--artwork \"$image\"");
