@@ -205,7 +205,9 @@ if ($verbose eq "yes") {
 	print "SERIES NAME:\t$SeriesName\n";
 	print "EPISODE NAME:\t$EpisodeName\n";
 	print "AIR DATE:\t$AirDate\n";
-	print "RATING:\t\t$Rating\n";
+	if ($Rating) {
+		print "RATING:\t\t$Rating\n";
+	}
 	print "GENRE:\t\t$genre\n";
 	print "DESC:\t\t$Description\n";
 	print "TV NETWORK:\t$TVNetwork\n";
