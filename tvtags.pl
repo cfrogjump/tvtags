@@ -156,29 +156,33 @@ foreach my $art (@banners) {
 
 # If artwork can't be automatically determined then prompt for input.
 if (!$artwork && !$image && @banners) {
-	print "Please select the image(s) you would like to preview. (Comma separated list ex. 1,2,3)\n\n";
-	foreach my $art (@banners) {
-		print "$index) " . $url . "/" . $art->{banner} . "\n";
-		$index++;
-	}
-	print "\nSelection: ";
-	my $input = <STDIN>;
-	chomp($input);
-	my @inputArray;
-	if ($input =~ ",") {
-		@inputArray = split(',', $input);
+	if (scalar @banners eq "1") {
+		$artwork = $url . "/" . $banners[0]->{banner};
 	} else {
-		push(@inputArray, $input);
+		print "Please select the image(s) you would like to preview. (Comma separated list ex. 1,2,3)\n\n";
+		foreach my $art (@banners) {
+			print "$index) " . $url . "/" . $art->{banner} . "\n";
+			$index++;
+		}
+		print "\nSelection: ";
+		my $input = <STDIN>;
+		chomp($input);
+		my @inputArray;
+		if ($input =~ ",") {
+			@inputArray = split(',', $input);
+		} else {
+			push(@inputArray, $input);
+		}
+		if ($input) {
+			foreach my $x (@inputArray) {
+				$imageurl = "$url/$banners[$x]->{banner}";
+				`open $imageurl`;
+			}	
+		}
+		print "Which image would you like to use? ";
+		$input = <STDIN>;
+		$artwork = $url . "/" . $banners[$input]->{banner};
 	}
-	if ($input) {
-		foreach my $x (@inputArray) {
-			$imageurl = "$url/$banners[$x]->{banner}";
-			`open $imageurl`;
-		}	
-	}
-	print "Which image would you like to use? ";
-	$input = <STDIN>;
-	$artwork = $url . "/" . $banners[$input]->{banner};
 }
 
 if ($artwork) {
@@ -283,3 +287,8 @@ if ($image && $cleanup eq "yes") {
 		or die "system rm failed: $?";
 }
 
+# Set the files modification date to match the release date for sorting purposes. 
+$AirDate =~ s/-//g;
+$AirDate = $AirDate . "1200";
+system ("touch -t $AirDate $file") == 0
+	or die "touch failed: $?";
