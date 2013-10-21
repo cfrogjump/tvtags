@@ -241,6 +241,7 @@ $file =~ s/\(/\\\(/g;
 $file =~ s/\)/\\\)/g;
 $file =~ s/\,/\\\,/g;
 $file =~ s/\:/\\\:/g;
+$file =~ s/\;/\\\;/g;
 $file =~ s/\&/\\\&/g;
 
 push(@command, "$mp4tagger");
