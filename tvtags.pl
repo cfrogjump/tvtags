@@ -56,6 +56,8 @@ my @banners;
 my $image;
 my $link;
 my $imageurl;
+my @genre;
+my @Actors;
 
 my $tvdb = WebService::TVDB->new(api_key => "$api_key", language => 'English', max_retries => 10);
 my $series_list = $tvdb->search("$show");
@@ -70,15 +72,15 @@ my $Rating = $series->ContentRating;
 my $TVNetwork = $series->Network;
 my $SeriesName = $series->SeriesName;
 for my $genres (@{ $series->Genre }) {
-	$genre .= $genres . ",";
+	push(@genre, $genres);
 }
-$genre =~ s/,$//g;
+$genre = join(',', @genre);
 
 if (@{$series->Actors}) {
 	for my $people (@{ $series->Actors}) {
-		$Actors .= $people . ",";
+		push (@Actors, $people);
 	}
-	$Actors =~ s/,$//g;
+	$Actors = join(',', @Actors);
 }
 
 # Popluate the episode information
