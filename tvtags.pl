@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use WebService::TVDB;
+use Mediainfo;
 use File::Basename;
 use File::Path;
 use File::Fetch;
@@ -17,7 +18,6 @@ if ($#ARGV != 0) {
 ######################################################################
 # Edit these variables if needed.
 ######################################################################
-my $HD = "yes";
 my $api_key = "E5DC4EEFA8A7AA8D";
 my $mp4tagger = "MP4Tagger";
 my $verbose = "yes";
@@ -41,6 +41,7 @@ if ($Season_Episode =~ m/S(\d+)E(\d+)/) {
 $EpisodeNumber =~ s/^0+//g;
 $SeasonNumber =~ s/^0+//g;
 
+my $HD;
 my $kind = "TV Show";
 my $genre;
 my $Actors;
@@ -195,6 +196,28 @@ if ($artwork) {
 	$image = "$SeriesName.jpg";
 }
 
+
+
+# Determine if the file your tagging is HD or SD.
+my $media_info = new Mediainfo("filename" => "$file");
+
+if ($media_info->{width} < "960") {
+	$HD = "no";
+} else {
+	$HD = "yes";
+}
+$file =~ s/\ /\\\ /g;
+$file =~ s/\'/\\\'/g;
+$file =~ s/\(/\\\(/g;
+$file =~ s/\)/\\\)/g;
+$file =~ s/\,/\\\,/g;
+$file =~ s/\:/\\\:/g;
+$file =~ s/\;/\\\;/g;
+$file =~ s/\&/\\\&/g;
+$file =~ s/\?/\\\?/g;
+$file =~ s/\`/\\\`/g;
+
+$EpisodeName =~ s/\`/\\\`/g;
 if ($verbose eq "yes") {
 	print "\n************************************\n";
 	print "\n";
@@ -237,15 +260,6 @@ if ($verbose eq "yes") {
 }
 
 # Tag the file with the information.
-$file =~ s/\ /\\\ /g;
-$file =~ s/\'/\\\'/g;
-$file =~ s/\(/\\\(/g;
-$file =~ s/\)/\\\)/g;
-$file =~ s/\,/\\\,/g;
-$file =~ s/\:/\\\:/g;
-$file =~ s/\;/\\\;/g;
-$file =~ s/\&/\\\&/g;
-
 push(@command, "$mp4tagger");
 push(@command, "-i $file");
 push(@command, "--media_kind \"$kind\"");
